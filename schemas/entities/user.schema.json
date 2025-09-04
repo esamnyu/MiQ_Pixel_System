@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://miqpixel.com/schemas/entities/user.json",
+  "title": "User Entity",
+  "description": "User identification and attributes",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Internal user identifier",
+      "format": "uuid"
+    },
+    "externalId": {
+      "type": "string",
+      "description": "SHA-256 hashed external identifier",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "emailHash": {
+      "type": "string",
+      "description": "SHA-256 hash of normalized email",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "phoneHash": {
+      "type": "string",
+      "description": "SHA-256 hash of normalized phone (E.164)",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "segments": {
+      "type": "array",
+      "description": "User segment memberships",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "maxLength": 100
+      }
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Custom user attributes (hashed if PII)",
+      "maxProperties": 50,
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"],
+        "maxLength": 500
+      }
+    },
+    "firstSeen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lastSeen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lifetimeValue": {
+      "type": "number",
+      "minimum": 0
+    },
+    "purchaseCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "consentStatus": {
+      "$ref": "./consent.schema.json"
+    }
+  },
+  "required": ["id"],
+  "additionalProperties": false
+}

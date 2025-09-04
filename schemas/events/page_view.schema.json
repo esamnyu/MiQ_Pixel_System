@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://miqpixel.com/schemas/events/page_view.json",
+  "title": "PageView Event",
+  "description": "Schema for page view tracking events",
+  "type": "object",
+  "required": ["eventType", "timestamp", "siteId", "context"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier"
+    },
+    "eventType": {
+      "const": "page_view"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "siteId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "sessionId": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "userId": {
+      "type": "string",
+      "description": "SHA-256 hashed user identifier",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "deviceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "consent": {
+      "$ref": "../entities/consent.schema.json"
+    },
+    "context": {
+      "type": "object",
+      "required": ["page"],
+      "properties": {
+        "page": {
+          "type": "object",
+          "required": ["url"],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "referrer": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "search": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "hash": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        "device": {
+          "$ref": "../entities/device.schema.json"
+        },
+        "geo": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "region": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        }
+      }
+    },
+    "properties": {
+      "type": "object",
+      "maxProperties": 50,
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"],
+        "maxLength": 1000
+      }
+    }
+  },
+  "additionalProperties": false
+}

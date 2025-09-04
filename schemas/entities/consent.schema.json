@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://miqpixel.com/schemas/entities/consent.json",
+  "title": "Consent State",
+  "description": "User consent state for data collection and processing",
+  "type": "object",
+  "properties": {
+    "tcf": {
+      "type": "object",
+      "description": "IAB TCF 2.2 consent data",
+      "properties": {
+        "version": {
+          "const": "2.2"
+        },
+        "cmpId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cmpVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "consentScreen": {
+          "type": "integer"
+        },
+        "consentLanguage": {
+          "type": "string",
+          "pattern": "^[a-z]{2}$"
+        },
+        "vendorListVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "purposes": {
+          "type": "object",
+          "description": "Purpose consent (1-11)",
+          "patternProperties": {
+            "^([1-9]|1[0-1])$": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "specialFeatures": {
+          "type": "object",
+          "description": "Special feature opt-ins",
+          "patternProperties": {
+            "^[1-2]$": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "vendorConsent": {
+          "type": "object",
+          "description": "Vendor consent map",
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "maxProperties": 1000
+        },
+        "vendorLI": {
+          "type": "object",
+          "description": "Vendor legitimate interest",
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "maxProperties": 1000
+        },
+        "purposesLI": {
+          "type": "object",
+          "description": "Purpose legitimate interests",
+          "patternProperties": {
+            "^([2-9]|1[0-1])$": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "publisherCC": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "Publisher country code"
+        },
+        "isServiceSpecific": {
+          "type": "boolean"
+        },
+        "useNonStandardTexts": {
+          "type": "boolean"
+        },
+        "purposeOneTreatment": {
+          "type": "boolean"
+        }
+      },
+      "required": ["version", "vendorConsent", "purposes"],
+      "additionalProperties": false
+    },
+    "gpc": {
+      "type": "boolean",
+      "description": "Global Privacy Control signal"
+    },
+    "usp": {
+      "type": "string",
+      "pattern": "^[0-9A-Z-]{4}$",
+      "description": "US Privacy String (CCPA)"
+    },
+    "customConsent": {
+      "type": "object",
+      "properties": {
+        "analytics": {
+          "type": "boolean"
+        },
+        "marketing": {
+          "type": "boolean"
+        },
+        "personalization": {
+          "type": "boolean"
+        },
+        "advertising": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "jurisdiction": {
+      "type": "string",
+      "enum": ["EU", "UK", "CA", "US", "BR", "AU", "ROW"],
+      "description": "Detected jurisdiction for consent rules"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When consent was captured"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://miqpixel.com/schemas/entities/device.json",
+  "title": "Device Information",
+  "description": "Device and browser information for context",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["desktop", "mobile", "tablet", "tv", "watch", "car", "console", "unknown"]
+    },
+    "manufacturer": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "model": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "os": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 50
+        }
+      },
+      "additionalProperties": false
+    },
+    "browser": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "major": {
+          "type": "string",
+          "maxLength": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "screen": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "colorDepth": {
+          "type": "integer",
+          "enum": [1, 4, 8, 15, 16, 24, 30, 32, 48]
+        }
+      },
+      "additionalProperties": false
+    },
+    "viewport": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "additionalProperties": false
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
+    "timezone": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "adBlocker": {
+      "type": "boolean"
+    },
+    "doNotTrack": {
+      "type": "boolean"
+    },
+    "touchEnabled": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

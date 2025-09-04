@@ -1,0 +1,586 @@
+openapi: 3.1.0
+info:
+  title: MiQ Pixel System API
+  description: Privacy-first tracking pixel platform with server-side processing
+  version: 1.0.0
+  contact:
+    name: MiQ Engineering
+    email: engineering@miq.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://collect.miqpixel.com
+    description: Production collection endpoint
+  - url: https://config.miqpixel.com
+    description: Configuration service
+  - url: https://api.miqpixel.com
+    description: Admin API
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /healthz:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      security: []
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /collect:
+    post:
+      summary: Collect tracking event (JSON)
+      operationId: collectEventJSON
+      security: []
+      tags:
+        - Collection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/SchemaVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackingEvent'
+      responses:
+        '202':
+          description: Event accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    get:
+      summary: Collect tracking event (Image pixel)
+      operationId: collectEventPixel
+      security: []
+      tags:
+        - Collection
+      parameters:
+        - name: d
+          in: query
+          required: true
+          description: Base64 encoded JSON event data
+          schema:
+            type: string
+            format: byte
+        - name: sid
+          in: query
+          description: Site ID
+          schema:
+            type: string
+        - name: eid
+          in: query
+          description: Event ID (for idempotency)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transparent 1x1 pixel
+          content:
+            image/gif:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /s2s/convert:
+    post:
+      summary: Server-to-server conversion event
+      operationId: s2sConversion
+      tags:
+        - S2S
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversionEvent'
+      responses:
+        '202':
+          description: Conversion accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /config/{siteId}:
+    get:
+      summary: Get site configuration
+      operationId: getSiteConfig
+      security: []
+      tags:
+        - Configuration
+      parameters:
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+        - name: version
+          in: query
+          description: Config version
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Site configuration
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: 'public, max-age=300'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteConfig'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /consent/status:
+    post:
+      summary: Update consent status
+      operationId: updateConsent
+      security: []
+      tags:
+        - Consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentUpdate'
+      responses:
+        '200':
+          description: Consent updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique request identifier for exactly-once processing
+
+    SchemaVersion:
+      name: X-Schema-Version
+      in: header
+      schema:
+        type: string
+        default: '1.0.0'
+      description: Event schema version
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        checks:
+          type: object
+          properties:
+            redis:
+              type: boolean
+            database:
+              type: boolean
+            queue:
+              type: boolean
+
+    TrackingEvent:
+      type: object
+      required:
+        - eventType
+        - timestamp
+        - siteId
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum: [page_view, view_item, add_to_cart, purchase, custom_event]
+        timestamp:
+          type: string
+          format: date-time
+        siteId:
+          type: string
+          maxLength: 100
+        sessionId:
+          type: string
+          maxLength: 100
+        userId:
+          type: string
+          description: Hashed user identifier
+          maxLength: 64
+        deviceId:
+          type: string
+          maxLength: 100
+        consent:
+          $ref: '#/components/schemas/ConsentState'
+        context:
+          $ref: '#/components/schemas/EventContext'
+        properties:
+          type: object
+          maxProperties: 50
+          additionalProperties: true
+
+    ConversionEvent:
+      allOf:
+        - $ref: '#/components/schemas/TrackingEvent'
+        - type: object
+          required:
+            - conversionValue
+            - currency
+          properties:
+            conversionValue:
+              type: number
+              minimum: 0
+            currency:
+              type: string
+              pattern: '^[A-Z]{3}$'
+            orderId:
+              type: string
+              maxLength: 100
+            items:
+              type: array
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/LineItem'
+
+    LineItem:
+      type: object
+      required:
+        - id
+        - quantity
+        - price
+      properties:
+        id:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 100
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+
+    EventContext:
+      type: object
+      properties:
+        page:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              maxLength: 2048
+            title:
+              type: string
+              maxLength: 500
+            referrer:
+              type: string
+              format: uri
+              maxLength: 2048
+        device:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [desktop, mobile, tablet, tv, watch]
+            os:
+              type: string
+              maxLength: 50
+            browser:
+              type: string
+              maxLength: 50
+        geo:
+          type: object
+          properties:
+            country:
+              type: string
+              pattern: '^[A-Z]{2}$'
+            region:
+              type: string
+              maxLength: 100
+            city:
+              type: string
+              maxLength: 100
+
+    ConsentState:
+      type: object
+      properties:
+        tcf:
+          type: object
+          properties:
+            version:
+              type: string
+              const: '2.2'
+            purposes:
+              type: object
+              additionalProperties:
+                type: boolean
+            vendorConsent:
+              type: object
+              additionalProperties:
+                type: boolean
+        gpc:
+          type: boolean
+        customConsent:
+          type: object
+          properties:
+            analytics:
+              type: boolean
+            marketing:
+              type: boolean
+            personalization:
+              type: boolean
+
+    SiteConfig:
+      type: object
+      required:
+        - siteId
+        - version
+        - features
+      properties:
+        siteId:
+          type: string
+        version:
+          type: string
+        features:
+          type: object
+          properties:
+            cookieSync:
+              type: boolean
+            enhancedConversions:
+              type: boolean
+            s2sEnabled:
+              type: boolean
+        partners:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              enabled:
+                type: boolean
+              config:
+                type: object
+        consent:
+          type: object
+          properties:
+            required:
+              type: boolean
+            vendorId:
+              type: integer
+            purposes:
+              type: array
+              items:
+                type: integer
+
+    ConsentUpdate:
+      type: object
+      required:
+        - siteId
+        - userId
+        - consent
+      properties:
+        siteId:
+          type: string
+        userId:
+          type: string
+        consent:
+          $ref: '#/components/schemas/ConsentState'
+        timestamp:
+          type: string
+          format: date-time
+
+    CollectResponse:
+      type: object
+      required:
+        - eventId
+        - status
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, duplicate]
+        message:
+          type: string
+
+    ConversionResponse:
+      type: object
+      required:
+        - conversionId
+        - status
+      properties:
+        conversionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, duplicate, invalid]
+        partners:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+              message:
+                type: string
+
+    ConsentResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [updated, unchanged]
+        timestamp:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        requestId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ServiceUnavailable:
+      description: Service temporarily unavailable
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

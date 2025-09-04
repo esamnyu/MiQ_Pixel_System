@@ -1,0 +1,39 @@
+{
+  "name": "@miq/client-sdk",
+  "version": "0.0.1",
+  "main": "./dist/miq.js",
+  "module": "./dist/miq.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/miq.js",
+      "import": "./dist/miq.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "vite build && npm run size",
+    "dev": "vite build --watch",
+    "size": "size-limit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "size-limit": [
+    {
+      "path": "dist/miq.min.js",
+      "limit": "10 KB",
+      "gzip": true
+    }
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.41.0",
+    "@size-limit/preset-small-lib": "^11.0.1",
+    "size-limit": "^11.0.1",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vitest": "^1.2.0"
+  }
+}
